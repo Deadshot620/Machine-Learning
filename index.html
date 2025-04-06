@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Radial Bearing Cost Estimator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #beef00;
+
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        select,
+        button {
+            margin: 10px 0;
+            padding: 8px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+            font-size: 30px;
+        }
+
+        /* Styles for the loading animation */
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Radial Bearing Cost Estimator</h1>
+
+    <!-- Dropdown fields for user selection -->
+    <label for="bearingType">Bearing Type:</label>
+    <select id="bearingType"></select><br><br>
+
+    <label for="bdRatio">B/D Ratio:</label>
+    <select id="bdRatio"></select><br><br>
+
+    <label for="bearingDiameter">Bearing Diameter (mm):</label>
+    <select id="bearingDiameter"></select><br><br>
+
+    <label for="supplier">Supplier:</label>
+    <select id="supplier"></select><br><br>
+
+    <button onclick="predictCost()">Predict Cost</button>
+
+    <!-- Loading animation element -->
+    <div class="loader" id="loading"></div>
+
+    <div id="result"></div>
+    <script>
+        // Hardcoded dataset
+        const bearingData = [{
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1354.82
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 90,
+            "supplier": "KMP",
+            "cost": 2510.55
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 140,
+            "supplier": "KMP",
+            "cost": 2354.83
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 240,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3257.39
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2705.24
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1952.66
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2705.24
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2705.24
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 190,
+            "supplier": "Edelmann GmbH",
+            "cost": null
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 240,
+            "supplier": "Edelmann GmbH",
+            "cost": 2151.98
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 290,
+            "supplier": "Edelmann GmbH",
+            "cost": 2901.72
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 340,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2481.51
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.6",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": 3965.63
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 40,
+            "supplier": "Edelmann GmbH",
+            "cost": 2029.38
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 90,
+            "supplier": "Edelmann GmbH",
+            "cost": 1765.79
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 140,
+            "supplier": "KMP",
+            "cost": 2568.72
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 190,
+            "supplier": "Edelmann GmbH",
+            "cost": 2729.84
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 240,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3257.39
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 290,
+            "supplier": "KMP",
+            "cost": 3101.63
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 340,
+            "supplier": "KMP",
+            "cost": 2654.24
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "0.9",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": 2789.36
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 40,
+            "supplier": "Edelmann GmbH",
+            "cost": 1686.06
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 90,
+            "supplier": "Edelmann GmbH",
+            "cost": 1924.63
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 140,
+            "supplier": "Edelmann GmbH",
+            "cost": 2332.86
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 190,
+            "supplier": "KMP",
+            "cost": 2708.29
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 240,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3124.68
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "KMP",
+            "cost": 2114.9
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 340,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3358.65
+        },
+        {
+            "bearingType": "Lemon Offset",
+            "bdRatio": "1",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": 2890.54
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "Edelmann GmbH",
+            "cost": null
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 90,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2317.15
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 140,
+            "supplier": "Edelmann GmbH",
+            "cost": 1677.06
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 190,
+            "supplier": "KMP",
+            "cost": 1788.32
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 240,
+            "supplier": "KMP",
+            "cost": 2816.29
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3425.76
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 340,
+            "supplier": "Edelmann GmbH",
+            "cost": 3239.95
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.6",
+            "diameter": 390,
+            "supplier": "KMP",
+            "cost": 2608.28
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 40,
+            "supplier": "Edelmann GmbH",
+            "cost": 2120.48
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 90,
+            "supplier": "KMP",
+            "cost": null
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 140,
+            "supplier": "Edelmann GmbH",
+            "cost": 1959.36
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 190,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2692.87
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 240,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2446.26
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2980.71
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 340,
+            "supplier": "KMP",
+            "cost": 3536.63
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "0.9",
+            "diameter": 390,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2982.96
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 40,
+            "supplier": "KMP",
+            "cost": 1519.61
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 90,
+            "supplier": "Edelmann GmbH",
+            "cost": null
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 140,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2418.08
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 190,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2275.87
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 240,
+            "supplier": "Edelmann GmbH",
+            "cost": 2078.64
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "KMP",
+            "cost": 2498.54
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 340,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3414.2
+        },
+        {
+            "bearingType": "Zylindrical",
+            "bdRatio": "1",
+            "diameter": 390,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3740.21
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2322.88
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 90,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1830.1
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 140,
+            "supplier": "Edelmann GmbH",
+            "cost": 2189.18
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 190,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1836.16
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 240,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2532.22
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3511.15
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 340,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3137.75
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.6",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": 2816.95
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 40,
+            "supplier": "Edelmann GmbH",
+            "cost": 1998.51
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 90,
+            "supplier": "Edelmann GmbH",
+            "cost": 2194.35
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 140,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1811.77
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 190,
+            "supplier": "KMP",
+            "cost": 2078.82
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 240,
+            "supplier": "KMP",
+            "cost": 2430.73
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2913.43
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 340,
+            "supplier": "Edelmann GmbH",
+            "cost": 3128.89
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "0.9",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": null
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 40,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 1596.84
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 90,
+            "supplier": "KMP",
+            "cost": 2484.28
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 140,
+            "supplier": "Edelmann GmbH",
+            "cost": 2411.05
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 190,
+            "supplier": "Edelmann GmbH",
+            "cost": 2245.6
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 240,
+            "supplier": "Edelmann GmbH",
+            "cost": 2867.16
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2705.24
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 340,
+            "supplier": "KMP",
+            "cost": 2512.54
+        },
+        {
+            "bearingType": "Lemon Bearing",
+            "bdRatio": "1",
+            "diameter": 390,
+            "supplier": "Edelmann GmbH",
+            "cost": 2994.16
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "KMP",
+            "cost": 1952.66
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 90,
+            "supplier": "Edelmann GmbH",
+            "cost": 2088.34
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 140,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2164.8
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 190,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2646.06
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 240,
+            "supplier": "KMP",
+            "cost": 2871.77
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 290,
+            "supplier": "KMP",
+            "cost": 2899.37
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 340,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3237.32
+        },
+        {
+            "bearingType": "Radial-Axial bearing Zylindrisch",
+            "bdRatio": "0.6",
+            "diameter": 390,
+            "supplier": "KMP",
+            "cost": 2946.99
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 40,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2022.24
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 90,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 2155.2
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 140,
+            "supplier": "KMP",
+            "cost": 2440.21
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 190,
+            "supplier": "Edelmann GmbH",
+            "cost": null
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 240,
+            "supplier": "Edelmann GmbH",
+            "cost": 1995.69
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 290,
+            "supplier": "ADMOS Gleitlager GmbH",
+            "cost": 3153.45
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 340,
+            "supplier": "KMP",
+            "cost": 3027.59
+        },
+        {
+            "bearingType": "Radial-Axial Lager MFGI",
+            "bdRatio": "0.6",
+            "diameter": 390,
+            "supplier": "KMP",
+            "cost": 3651.86
+        }
+        ];
+
+
+        // Populate dropdown options dynamically
+        function populateDropdowns() {
+            const types = [...new Set(bearingData.map(item => item.bearingType))];
+            const ratios = [...new Set(bearingData.map(item => item.bdRatio))];
+            const diameters = [...new Set(bearingData.map(item => item.diameter))];
+            const suppliers = [...new Set(bearingData.map(item => item.supplier))];
+
+            populateDropdown('bearingType', types);
+            populateDropdown('bdRatio', ratios);
+            populateDropdown('bearingDiameter', diameters);
+            populateDropdown('supplier', suppliers);
+        }
+
+        function populateDropdown(id, values) {
+            const dropdown = document.getElementById(id);
+            values.forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                dropdown.appendChild(option);
+            });
+        }
+
+        // Predict cost based on user selection
+        function predictCost() {
+            const bearingType = document.getElementById('bearingType').value;
+            const bdRatio = document.getElementById('bdRatio').value;
+            const diameter = parseFloat(document.getElementById('bearingDiameter').value);
+            const supplier = document.getElementById('supplier').value;
+
+            // Show loading animation
+            document.getElementById('loading').style.display = 'block';
+
+            // Simulate a delay for the calculation
+            setTimeout(function () {
+                // Find matching record
+                const match = bearingData.find(item =>
+                    item.bearingType === bearingType &&
+                    item.bdRatio === bdRatio &&
+                    item.diameter === diameter &&
+                    item.supplier === supplier
+                );
+                document.getElementById('result').innerText = ''
+                // Hide loading animation
+                document.getElementById('loading').style.display = 'none';
+
+                // Display result
+                if (match) {
+                    document.getElementById('result').innerText = `Total Final Cost of Bearing is: €${match.cost}`;
+                } else {
+                    document.getElementById('result').innerText = `No matching data found!`;
+                }
+            },  Math.floor(Math.random() * 10000)); // Simulate 2 seconds loading time
+
+            document.getElementById('result').innerText = ''
+        }
+
+        // Initialize dropdowns on page load
+        window.onload = populateDropdowns
+    </script>
+</body>
+
+</html>
